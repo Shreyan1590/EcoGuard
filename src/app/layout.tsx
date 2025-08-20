@@ -4,7 +4,7 @@ import { AuthProvider } from '@/hooks/use-auth.tsx';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'EcoGuard Mobile',
+  title: 'EcoGuard',
   description: 'Monitor and manage illegal logging incidents.',
 };
 

@@ -138,7 +138,7 @@ export function LoginForm() {
         <div className="mx-auto bg-primary rounded-full p-3 w-fit mb-4">
           <Trees className="h-10 w-10 text-primary-foreground" />
         </div>
-        <CardTitle className="text-3xl font-headline text-primary">EcoGuard Mobile</CardTitle>
+        <CardTitle className="text-3xl font-headline text-primary">EcoGuard</CardTitle>
         <CardDescription>Login to monitor forest activity</CardDescription>
       </CardHeader>
       <CardContent>
