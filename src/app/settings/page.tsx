@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SettingsForm } from '@/components/settings/settings-form';
 import type { User } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
 
 export default function SettingsPage() {
     const { user, loading } = useAuth();

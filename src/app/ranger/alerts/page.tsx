@@ -11,6 +11,8 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 export default function AlertsPage() {
     const [newIncidents, setNewIncidents] = useState<Incident[]>([]);
     const [loading, setLoading] = useState(true);

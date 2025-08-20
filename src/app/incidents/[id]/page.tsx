@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AppShell } from '@/components/shared/app-shell';
@@ -24,6 +25,8 @@ type Note = {
   note: string;
   timestamp: any;
 };
+
+export const dynamic = 'force-dynamic';
 
 export default function IncidentDetailPage({ params }: { params: { id: string } }) {
   const [incident, setIncident] = useState<Incident | null>(null);
