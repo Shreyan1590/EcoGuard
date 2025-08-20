@@ -42,11 +42,9 @@ export function LoginForm() {
 
     try {
       let emailToLogin: string | null = null;
-      let userRole: UserRole = 'ranger';
 
       if (isAdminLogin) {
         emailToLogin = adminEmail;
-        userRole = 'administrator';
       } else {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("username", "==", username));
@@ -59,7 +57,7 @@ export function LoginForm() {
       }
 
       if (!emailToLogin) {
-        throw new Error("Invalid username or password.");
+        throw new Error("Invalid username.");
       }
 
       try {
@@ -88,17 +86,24 @@ export function LoginForm() {
           const newUser = newUserCredential.user;
           await createUserInFirestore(newUser.uid, 'Administrator', adminEmail, 'administrator', 'admin');
           router.push('/admin/dashboard');
-        } else {
+        } else if (error.code === 'auth/invalid-credential') {
+           toast({
+            title: "Login Failed",
+            description: "The password for this user is incorrect. Please try again.",
+            variant: "destructive",
+          });
+        }
+        else {
           // For other errors, just re-throw
           throw error;
         }
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       toast({
         title: "Login Failed",
-        description: "Invalid username or password. Please try again.",
+        description: error.message || "An unknown error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
