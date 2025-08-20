@@ -1,0 +1,12 @@
+# Netlify configuration for a Next.js application
+
+[build]
+  # Command to build the Next.js application
+  command = "npm run build"
+  # Directory where the built application is stored
+  publish = ".next"
+
+[[plugins]]
+  # Use the official Netlify plugin for Next.js for full support
+  # of features like SSR, ISR, and API routes.
+  package = "@netlify/plugin-nextjs"
