@@ -16,14 +16,14 @@ const rangerNav = [
   { name: 'Dashboard', href: '/ranger/dashboard', icon: ClipboardList },
   { name: 'Map', href: '/ranger/dashboard', icon: Map },
   { name: 'Alerts', href: '#', icon: Bell },
-  { name: 'Settings', href: '#', icon: Settings },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 const adminNav = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: BarChart },
-  { name: 'Users', href: '#', icon: Users },
+  { name: 'Users', href: '/admin/dashboard', icon: Users },
   { name: 'AI Tool', href: '/admin/confidence-tool', icon: Wrench },
-  { name: 'Settings', href: '#', icon: Settings },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function AppShell({ children, role }: { children: ReactNode; role: UserRole }) {
@@ -80,7 +80,7 @@ function DesktopSidebar({ navigation, role, handleLogout }: { navigation: any[],
             href={item.href}
             className={cn(
               "flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8",
-              pathname.startsWith(item.href) ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"
+              pathname.startsWith(item.href) && item.href !=='#' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <item.icon className="h-5 w-5" />
@@ -182,7 +182,7 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
 
 function MobileNavLink({ href, icon: Icon, name }: { href: string, icon: React.ElementType, name: string }) {
   const pathname = usePathname();
-  const isActive = pathname.startsWith(href);
+  const isActive = pathname.startsWith(href) && href !== '#';
 
   return (
     <Link href={href} className={cn(
