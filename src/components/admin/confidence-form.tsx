@@ -14,6 +14,7 @@ import { analyzeIncidentConfidenceLevel } from '@/app/actions';
 import type { AnalyzeIncidentConfidenceLevelOutput } from '@/ai/flows/incident-confidence-level';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   sensorData: z.string().min(10, "Please provide more detailed sensor data."),
