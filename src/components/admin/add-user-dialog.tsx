@@ -60,7 +60,8 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (isEditMode) {
-        await updateUser(user.id, { name: values.name, role: values.role });
+        // Only allow updating the name in edit mode. Role changes are restricted.
+        await updateUser(user.id, { name: values.name });
         toast({ title: "User updated successfully!" });
       } else {
         if (!values.password) {
@@ -167,7 +168,7 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!isEditMode}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a role" />
