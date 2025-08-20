@@ -7,15 +7,19 @@ import { IncidentList } from '@/components/dashboard/incident-list';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Incident } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function RangerDashboard() {
+function RangerDashboardContent() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const view = searchParams.get('view') || 'list';
 
   useEffect(() => {
     const q = query(collection(db, 'incidents'));
@@ -36,6 +40,10 @@ export default function RangerDashboard() {
 
     return () => unsubscribe();
   }, []);
+
+  const handleTabChange = (newView: string) => {
+    router.push(`/ranger/dashboard?view=${newView}`);
+  };
   
   const newIncidents = incidents.filter(i => i.status === 'new');
   const ackIncidents = incidents.filter(i => i.status === 'acknowledged');
@@ -52,7 +60,7 @@ export default function RangerDashboard() {
     <AppShell role="ranger">
       <div className="space-y-6">
         <h1 className="text-3xl font-bold font-headline">Ranger Dashboard</h1>
-        <Tabs defaultValue="list" className="w-full">
+        <Tabs value={view} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="list">Incident List</TabsTrigger>
             <TabsTrigger value="map">Map View</TabsTrigger>
@@ -123,4 +131,12 @@ export default function RangerDashboard() {
       </div>
     </AppShell>
   );
+}
+
+export default function RangerDashboard() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RangerDashboardContent />
+    </Suspense>
+  )
 }

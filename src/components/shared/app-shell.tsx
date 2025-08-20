@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { BarChart, Settings, LogOut, Trees, Bell, Map, ClipboardList, Wrench, Users, PanelLeft, Menu, Battery, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -13,8 +13,8 @@ import { useEffect, useState } from 'react';
 
 
 const rangerNav = [
-  { name: 'Dashboard', href: '/ranger/dashboard', icon: ClipboardList },
-  { name: 'Map', href: '/ranger/dashboard', icon: Map },
+  { name: 'Dashboard', href: '/ranger/dashboard?view=list', icon: ClipboardList, view: 'list' },
+  { name: 'Map', href: '/ranger/dashboard?view=map', icon: Map, view: 'map' },
   { name: 'Alerts', href: '#', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -54,7 +54,7 @@ export function AppShell({ children, role }: { children: ReactNode; role: UserRo
        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t z-10">
         <div className="grid h-16 grid-cols-4">
            {rangerNav.map((item) => (
-             <MobileNavLink key={item.name} href={item.href} icon={item.icon} name={item.name} />
+             <MobileNavLink key={item.name} href={item.href} icon={item.icon} name={item.name} view={item.view} />
            ))}
         </div>
       </nav>
@@ -64,6 +64,11 @@ export function AppShell({ children, role }: { children: ReactNode; role: UserRo
 
 function DesktopSidebar({ navigation, role, handleLogout }: { navigation: any[], role: UserRole, handleLogout: () => void }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentView = searchParams.get('view');
+  
+  const isRangerDashboard = pathname.startsWith('/ranger/dashboard');
+
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
       <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
@@ -74,19 +79,25 @@ function DesktopSidebar({ navigation, role, handleLogout }: { navigation: any[],
           <Trees className="h-5 w-5 transition-all group-hover:scale-110" />
           <span className="sr-only">EcoGuard</span>
         </Link>
-        {navigation.map((item) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8",
-              pathname.startsWith(item.href) && item.href !=='#' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            <span className="sr-only">{item.name}</span>
-          </Link>
-        ))}
+        {navigation.map((item) => {
+          const isActive = item.view
+            ? isRangerDashboard && (currentView === item.view || (!currentView && item.view === 'list'))
+            : pathname.startsWith(item.href) && item.href !== '#';
+            
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8",
+                isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="sr-only">{item.name}</span>
+            </Link>
+          );
+        })}
       </nav>
       <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
         <button onClick={handleLogout} className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
@@ -184,9 +195,15 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
   )
 }
 
-function MobileNavLink({ href, icon: Icon, name }: { href: string, icon: React.ElementType, name: string }) {
+function MobileNavLink({ href, icon: Icon, name, view }: { href: string, icon: React.ElementType, name: string, view?: string }) {
   const pathname = usePathname();
-  const isActive = pathname.startsWith(href) && href !== '#';
+  const searchParams = useSearchParams();
+  const currentView = searchParams.get('view');
+
+  const isRangerDashboard = pathname.startsWith('/ranger/dashboard');
+  const isActive = view
+      ? isRangerDashboard && (currentView === view || (!currentView && view === 'list'))
+      : pathname.startsWith(href) && href !== '#';
 
   return (
     <Link href={href} className={cn(
