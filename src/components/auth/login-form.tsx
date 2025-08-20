@@ -139,7 +139,6 @@ export function LoginForm() {
           <Trees className="h-10 w-10 text-primary-foreground" />
         </div>
         <CardTitle className="text-3xl font-headline text-primary">EcoGuard</CardTitle>
-        <CardDescription>Login to monitor forest activity</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-6">
