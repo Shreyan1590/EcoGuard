@@ -42,9 +42,12 @@ export function LoginForm() {
 
     try {
       let emailToLogin: string | null = null;
+      let userRole: UserRole = 'ranger';
+      let userNameForDb = username;
 
       if (isAdminLogin) {
         emailToLogin = adminEmail;
+        userRole = 'administrator';
       } else {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("username", "==", username));
@@ -52,49 +55,31 @@ export function LoginForm() {
 
         if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0];
-            emailToLogin = userDoc.data().email;
+            const userData = userDoc.data();
+            emailToLogin = userData.email;
+            userRole = userData.role;
         }
       }
 
       if (!emailToLogin) {
         throw new Error("Invalid username.");
       }
-
+      
+      let userCredential;
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
-        const user = userCredential.user;
-        
-        // Redirect based on role
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          if (userData.role === 'administrator') {
-            router.push('/admin/dashboard');
-          } else {
-            router.push('/ranger/dashboard');
-          }
-        } else {
-           throw new Error("User role not found.");
-        }
-
+        userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
       } catch (error: any) {
-        // If admin login fails because the user does not exist, create it.
         if (isAdminLogin && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
           try {
-            const newUserCredential = await createUserWithEmailAndPassword(auth, adminEmail, password);
-            const newUser = newUserCredential.user;
-            await createUserInFirestore(newUser.uid, 'Administrator', adminEmail, 'administrator', 'admin');
-            router.push('/admin/dashboard');
-          } catch (creationError: any) {
-             // If creation also fails (e.g., user already exists but password is wrong), sign in again.
-             // This can happen in a race condition. The sign-in should now succeed.
-             if(creationError.code === 'auth/email-already-in-use') {
-                 await signInWithEmailAndPassword(auth, adminEmail, password);
-                 router.push('/admin/dashboard');
-             } else {
-                 throw creationError; // Re-throw other creation errors
-             }
+            userCredential = await createUserWithEmailAndPassword(auth, adminEmail, password);
+            await createUserInFirestore(userCredential.user.uid, 'Administrator', adminEmail, 'administrator', 'admin');
+          } catch(creationError: any) {
+            if (creationError.code === 'auth/email-already-in-use') {
+              // This can happen in a race condition. The sign-in should now succeed if we try again.
+              userCredential = await signInWithEmailAndPassword(auth, adminEmail, password);
+            } else {
+              throw creationError; // Re-throw other creation errors
+            }
           }
         } else if (error.code === 'auth/invalid-credential') {
            toast({
@@ -102,11 +87,35 @@ export function LoginForm() {
             description: "The password for this user is incorrect. Please try again.",
             variant: "destructive",
           });
-        }
-        else {
-          // For other errors, just re-throw
+          setIsLoading(false);
+          return;
+        } else {
           throw error;
         }
+      }
+      
+      if (!userCredential) {
+          throw new Error("Could not sign in or create user.");
+      }
+
+      const user = userCredential.user;
+      
+      // Ensure Firestore document exists
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+          // This case handles users that exist in Auth but not Firestore.
+          // For example, if admin was created in Auth but Firestore write failed.
+          const name = userRole === 'administrator' ? 'Administrator' : 'Ranger';
+          await createUserInFirestore(user.uid, name, emailToLogin, userRole, userNameForDb);
+      }
+      
+      // Redirect based on role
+      if (userRole === 'administrator') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/ranger/dashboard');
       }
 
     } catch (error: any) {
