@@ -22,7 +22,7 @@ function RangerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const view = searchParams.get('view') || 'list';
+  const view = searchParams ? searchParams.get('view') || 'list' : 'list';
 
   useEffect(() => {
     const q = query(collection(db, 'incidents'));
@@ -39,6 +39,9 @@ function RangerDashboardPage() {
       });
       setIncidents(incidentsData);
       setLoading(false);
+    }, (error) => {
+        console.error("Error fetching incidents:", error);
+        setLoading(false);
     });
 
     return () => unsubscribe();

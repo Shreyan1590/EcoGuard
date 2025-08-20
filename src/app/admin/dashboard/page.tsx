@@ -33,6 +33,8 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { AuthProvider } from '@/hooks/use-auth';
 
+export const dynamic = 'force-dynamic';
+
 type NoteWithIncidentId = {
     id: string;
     user: string;
@@ -52,21 +54,39 @@ function AdminDashboardContent() {
   useEffect(() => {
     setLoading(true);
 
-    const unsubIncidents = onSnapshot(query(collection(db, "incidents")), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Incident));
-      setIncidents(data);
-      fetchRecentNotes(data); // Fetch notes after incidents are loaded
-    });
+    const fetchInitialData = async () => {
+        try {
+            // Incidents
+            const unsubIncidents = onSnapshot(query(collection(db, "incidents")), (snapshot) => {
+              const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Incident));
+              setIncidents(data);
+              fetchRecentNotes(data); 
+            });
 
-    const unsubUsers = onSnapshot(query(collection(db, "users")), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-      setUsers(data);
-    });
+            // Users
+            const unsubUsers = onSnapshot(query(collection(db, "users")), (snapshot) => {
+              const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+              setUsers(data);
+            });
 
-    const unsubDevices = onSnapshot(query(collection(db, "devices")), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Device));
-      setDevices(data);
-    });
+            // Devices
+            const unsubDevices = onSnapshot(query(collection(db, "devices")), (snapshot) => {
+              const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Device));
+              setDevices(data);
+            });
+
+            setLoading(false);
+
+            return () => {
+              unsubIncidents();
+              unsubUsers();
+              unsubDevices();
+            };
+        } catch (error) {
+            console.error("Error fetching initial data:", error);
+            setLoading(false);
+        }
+    };
     
     const fetchRecentNotes = async (incidentsData: Incident[]) => {
         let allNotes: NoteWithIncidentId[] = [];
@@ -82,7 +102,6 @@ function AdminDashboardContent() {
             });
         }
         
-        // Sort notes by timestamp descending
         allNotes.sort((a, b) => {
             const dateA = a.timestamp?.toDate() || 0;
             const dateB = b.timestamp?.toDate() || 0;
@@ -92,22 +111,8 @@ function AdminDashboardContent() {
         setRecentNotes(allNotes);
     };
 
-     // Set loading to false once all initial listeners are established.
-    const allListenersAttached = Promise.all([
-        new Promise<void>(resolve => { const us = onSnapshot(query(collection(db, "incidents")), () => {us(); resolve()});}),
-        new Promise<void>(resolve => { const us = onSnapshot(query(collection(db, "users")), () => {us(); resolve()});}),
-        new Promise<void>(resolve => { const us = onSnapshot(query(collection(db, "devices")), () => {us(); resolve()});}),
-    ]);
-    
-    allListenersAttached.then(() => {
-        setLoading(false);
-    });
+    fetchInitialData();
 
-    return () => {
-      unsubIncidents();
-      unsubUsers();
-      unsubDevices();
-    };
   }, []);
 
   const handleDeleteUser = async (userId: string) => {
