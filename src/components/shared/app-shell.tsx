@@ -4,11 +4,12 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { BarChart, Settings, LogOut, Trees, Bell, Map, ClipboardList, Wrench, Users, PanelLeft, Menu } from 'lucide-react';
+import { BarChart, Settings, LogOut, Trees, Bell, Map, ClipboardList, Wrench, Users, PanelLeft, Menu, Battery, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import type { UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 
 
 const rangerNav = [
@@ -43,7 +44,7 @@ export function AppShell({ children, role }: { children: ReactNode; role: UserRo
           {children}
         </main>
         <footer className="text-center p-4 text-muted-foreground text-sm">
-            &copy; Designed and Developed by{' '}
+            &copy; {new Date().getFullYear()} Designed and Developed by{' '}
             <a href="https://www.shreyan.site" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
                 Shreyan
             </a>
@@ -98,6 +99,25 @@ function DesktopSidebar({ navigation, role, handleLogout }: { navigation: any[],
 }
 
 function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], role: UserRole, handleLogout: () => void }) {
+  const [time, setTime] = useState(new Date());
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if ('getBattery' in navigator) {
+      (navigator as any).getBattery().then((battery: any) => {
+        setBatteryLevel(Math.floor(battery.level * 100));
+        battery.addEventListener('levelchange', () => {
+          setBatteryLevel(Math.floor(battery.level * 100));
+        });
+      });
+    }
+  }, []);
+
   return (
      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>
@@ -138,7 +158,19 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
          <span className="font-bold">EcoGuard</span>
        </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-4">
+        <div className="hidden sm:flex items-center gap-2 font-mono text-sm text-muted-foreground">
+            {batteryLevel !== null && (
+                <div className="flex items-center gap-1">
+                    <Battery className="h-4 w-4"/>
+                    <span>{batteryLevel}%</span>
+                </div>
+            )}
+            <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <span>{time.toLocaleTimeString('en-IN', { hour12: false, timeZone: 'Asia/Kolkata' })}</span>
+            </div>
+        </div>
         <span className="hidden sm:inline capitalize font-semibold">{role}</span>
         <Button variant="outline" size="icon" className="hidden sm:inline-flex" onClick={handleLogout}>
           <LogOut className="h-5 w-5" />
