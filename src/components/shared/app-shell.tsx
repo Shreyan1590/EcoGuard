@@ -99,15 +99,15 @@ function DesktopSidebar({ navigation, role, handleLogout }: { navigation: any[],
 }
 
 function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], role: UserRole, handleLogout: () => void }) {
-  const [time, setTime] = useState(new Date());
+  const [time, setTime] = useState<Date | null>(null);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
 
   useEffect(() => {
+    // Set initial time on client mount
+    setTime(new Date());
     const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
+    
+    // Battery API is client-side only
     if ('getBattery' in navigator) {
       (navigator as any).getBattery().then((battery: any) => {
         setBatteryLevel(Math.floor(battery.level * 100));
@@ -116,6 +116,8 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
         });
       });
     }
+
+    return () => clearInterval(timer);
   }, []);
 
   return (
@@ -166,10 +168,12 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
                     <span>{batteryLevel}%</span>
                 </div>
             )}
-            <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                <span>{time.toLocaleTimeString('en-IN', { hour12: false, timeZone: 'Asia/Kolkata' })}</span>
-            </div>
+            {time !== null && (
+                <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    <span>{time.toLocaleTimeString('en-IN', { hour12: false, timeZone: 'Asia/Kolkata' })}</span>
+                </div>
+            )}
         </div>
         <span className="hidden sm:inline capitalize font-semibold">{role}</span>
         <Button variant="outline" size="icon" className="hidden sm:inline-flex" onClick={handleLogout}>
