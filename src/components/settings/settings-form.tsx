@@ -101,7 +101,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="username">Username</Label>
-                                        <Input id="username" {...form.register("username")} />
+                                        <Input id="username" {...form.register("username")} readOnly={!isAdministrator} className={!isAdministrator ? 'text-foreground' : ''}/>
                                          {form.formState.errors.username && <p className="text-sm text-destructive">{form.formState.errors.username.message}</p>}
                                     </div>
                                 </div>
