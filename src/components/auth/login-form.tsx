@@ -43,7 +43,6 @@ export function LoginForm() {
     try {
       let emailToLogin: string | null = null;
       let userRole: UserRole = 'ranger';
-      let userNameForDb = username;
 
       if (isAdminLogin) {
         emailToLogin = adminEmail;
@@ -58,11 +57,15 @@ export function LoginForm() {
             const userData = userDoc.data();
             emailToLogin = userData.email;
             userRole = userData.role;
+        } else {
+            toast({
+              title: "Login Failed",
+              description: `User with username '${username}' not found.`,
+              variant: "destructive",
+            });
+            setIsLoading(false);
+            return;
         }
-      }
-
-      if (!emailToLogin) {
-        throw new Error("Invalid username. Please check and try again.");
       }
       
       let userCredential;
@@ -74,8 +77,8 @@ export function LoginForm() {
             userCredential = await createUserWithEmailAndPassword(auth, adminEmail, password);
             await createUserInFirestore(userCredential.user.uid, 'Administrator', adminEmail, 'administrator', 'admin');
           } catch(creationError: any) {
+            // If admin already exists in auth but sign-in failed, try sign-in again
             if (creationError.code === 'auth/email-already-in-use') {
-              // This can happen in a race condition. The sign-in should now succeed if we try again.
               userCredential = await signInWithEmailAndPassword(auth, adminEmail, password);
             } else {
               throw creationError; // Re-throw other creation errors
@@ -106,14 +109,11 @@ export function LoginForm() {
       let firestoreUserRole = userDocSnap.data()?.role;
 
       if (!userDocSnap.exists()) {
-          // This case handles users that exist in Auth but not Firestore.
-          // For example, if admin was created in Auth but Firestore write failed.
           const name = userRole === 'administrator' ? 'Administrator' : 'Ranger';
-          await createUserInFirestore(user.uid, name, emailToLogin, userRole, userNameForDb);
+          await createUserInFirestore(user.uid, name, emailToLogin, userRole, username);
           firestoreUserRole = userRole;
       }
       
-      // Redirect based on role
       if (firestoreUserRole === 'administrator') {
         router.push('/admin/dashboard');
       } else {
