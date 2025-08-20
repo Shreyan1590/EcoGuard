@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -8,48 +9,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Rules for the 'users' collection
-    match /users/{userId} {
-      // Allow a user to read their own document
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-
-      // Allow a user to create their own document (e.g., on sign-up)
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-
-      // Allow a user to update their own document
-      allow update: if isAuthenticated() && request.auth.uid == userId;
-      
-      // Disallow deleting user documents via client requests for safety.
-      // Deletions should be handled by server-side logic (e.g., Cloud Functions).
-      allow delete: if false; 
-    }
-
-    // Rules for the 'incidents' collection
-    match /incidents/{incidentId} {
-      // Rangers and Admins can read all incidents
-      allow read: if isAuthenticated();
-      
-      // Rangers and Admins can create new incidents
-      allow create: if isAuthenticated();
-      
-      // Rangers and Admins can update incidents (e.g., change status)
-      allow update: if isAuthenticated();
-
-      // Only Admins should be able to delete incidents (or handled server-side)
-      // For now, we'll restrict deletion from the client.
-      allow delete: if false;
-
-      // Rules for the 'notes' subcollection within an incident
-      match /notes/{noteId} {
-        // Any authenticated user (ranger/admin) can add or read notes
-        allow list, get, create: if isAuthenticated();
-      }
+    // Helper function to check if the request is from the user who owns the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
     
-    // Rules for the 'devices' collection
+    // Users can only read, update, or delete their own data.
+    // Anyone can create a user document during sign-up.
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Any authenticated user (ranger/admin) can manage incidents and their subcollections
+    match /incidents/{incidentId}/{documents=**} {
+        allow read, write: if isAuthenticated();
+    }
+    
+    // Any authenticated user can manage devices
     match /devices/{deviceId} {
-        // Only authenticated users should be able to interact with devices
-        allow read, list, create, update, delete: if isAuthenticated();
+        allow read, write: if isAuthenticated();
     }
   }
 }
