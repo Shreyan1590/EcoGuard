@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, CheckCircle, AlertTriangle, Wifi, WifiOff, Trash2, Edit } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, collectionGroup, orderBy, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, collectionGroup, orderBy, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Incident, User, Device } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,9 +49,12 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
+    setLoading(true);
+
     const unsubIncidents = onSnapshot(query(collection(db, "incidents")), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Incident));
       setIncidents(data);
+      fetchRecentNotes(data); // Fetch notes after incidents are loaded
     });
 
     const unsubUsers = onSnapshot(query(collection(db, "users")), (snapshot) => {
@@ -63,33 +66,46 @@ export default function AdminDashboard() {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Device));
       setDevices(data);
     });
-
-    const fetchRecentNotes = async () => {
-        const notesQuery = query(collectionGroup(db, 'notes'), orderBy('timestamp', 'desc'));
-        const notesSnapshot = await getDocs(notesQuery);
-        const notesData: NoteWithIncidentId[] = [];
-        notesSnapshot.forEach(doc => {
-            notesData.push({
-                id: doc.id,
-                incidentId: doc.ref.parent.parent!.id,
-                ...doc.data()
-            } as NoteWithIncidentId);
-        });
-        setRecentNotes(notesData);
-    };
     
-    Promise.all([
-      new Promise(resolve => onSnapshot(query(collection(db, "incidents")), () => resolve(true))),
-      new Promise(resolve => onSnapshot(query(collection(db, "users")), () => resolve(true))),
-      new Promise(resolve => onSnapshot(query(collection(db, "devices")), () => resolve(true))),
-      fetchRecentNotes(),
-    ]).then(() => setLoading(false));
+    const fetchRecentNotes = async (incidentsData: Incident[]) => {
+        let allNotes: NoteWithIncidentId[] = [];
+        for (const incident of incidentsData) {
+            const notesQuery = query(collection(db, 'incidents', incident.id, 'notes'));
+            const notesSnapshot = await getDocs(notesQuery);
+            notesSnapshot.forEach(doc => {
+                allNotes.push({
+                    id: doc.id,
+                    incidentId: incident.id,
+                    ...doc.data()
+                } as NoteWithIncidentId);
+            });
+        }
+        
+        // Sort notes by timestamp descending
+        allNotes.sort((a, b) => {
+            const dateA = a.timestamp?.toDate() || 0;
+            const dateB = b.timestamp?.toDate() || 0;
+            return dateB - dateA;
+        });
 
+        setRecentNotes(allNotes);
+    };
+
+     // Set loading to false once all initial listeners are established.
+    const allListenersAttached = Promise.all([
+        new Promise<void>(resolve => { const us = onSnapshot(query(collection(db, "incidents")), () => {us(); resolve()});}),
+        new Promise<void>(resolve => { const us = onSnapshot(query(collection(db, "users")), () => {us(); resolve()});}),
+        new Promise<void>(resolve => { const us = onSnapshot(query(collection(db, "devices")), () => {us(); resolve()});}),
+    ]);
+    
+    allListenersAttached.then(() => {
+        setLoading(false);
+    });
 
     return () => {
       unsubIncidents();
       unsubUsers();
-unsubDevices();
+      unsubDevices();
     };
   }, []);
 
