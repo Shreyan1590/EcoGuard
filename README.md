@@ -18,7 +18,7 @@
 
 **EcoGuard** is a comprehensive, AI-powered application designed to combat illegal logging through real-time monitoring and streamlined incident management. It equips forest rangers and administrators with the tools they need to protect our vital forest ecosystems. The platform provides instant alerts, detailed incident tracking, and data-driven insights to enable swift and effective responses.
 
-> This project was built with **[Firebase Studio](https://studio.firebase.google.com)**, an AI-powered development environment for building and deploying full-stack web applications.
+> This project was built by **[Shreyan S](https://www.shreyan.site)**, who building and deploying full-stack web applications.
 
 ---
 
