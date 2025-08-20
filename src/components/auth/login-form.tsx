@@ -29,8 +29,8 @@ async function createUserInFirestore(uid: string, name: string, email: string, r
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
