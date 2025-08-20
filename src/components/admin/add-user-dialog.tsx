@@ -77,11 +77,11 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
             id: authUser.uid,
             name: values.name,
             email: values.email,
-            role: values.role,
+            role: 'ranger', // Force role to ranger on creation
             username: values.username
         });
 
-        toast({ title: "User created successfully!" });
+        toast({ title: "Ranger created successfully!" });
       }
       setIsOpen(false);
       form.reset();
@@ -102,15 +102,15 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
             <Button variant="ghost" size="icon"><Edit className="h-4 w-4"/></Button>
         ) : (
             <Button size="sm" className="ml-auto gap-1">
-                Add User <PlusCircle className="h-4 w-4" />
+                Add Ranger <PlusCircle className="h-4 w-4" />
             </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit User' : 'Add New User'}</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit User' : 'Add New Ranger'}</DialogTitle>
           <DialogDescription>
-            {isEditMode ? "Update the user's details below." : "Fill in the details to create a new user."}
+            {isEditMode ? "Update the user's details below." : "Fill in the personal information for the new ranger."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -167,7 +167,7 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!isEditMode}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a role" />
@@ -184,7 +184,7 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
             />
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save User"}
+                {isSubmitting ? "Saving..." : (isEditMode ? "Save Changes" : "Create Ranger")}
               </Button>
             </DialogFooter>
           </form>

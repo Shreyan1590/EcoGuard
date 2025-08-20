@@ -150,8 +150,8 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center">
                 <div className="grid gap-2">
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>Add, edit, or remove user accounts.</CardDescription>
+                  <CardTitle>Ranger Management</CardTitle>
+                  <CardDescription>Add, edit, or remove ranger accounts.</CardDescription>
                 </div>
                 <AddUserDialog />
               </CardHeader>
