@@ -159,15 +159,15 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
        </div>
 
       <div className="ml-auto flex items-center gap-4">
-        <div className="hidden sm:flex items-center gap-2 font-mono text-sm text-muted-foreground">
+        <div className="hidden sm:flex items-center gap-4 font-code text-base text-primary font-bold">
             {batteryLevel !== null && (
-                <div className="flex items-center gap-1">
-                    <Battery className="h-4 w-4"/>
+                <div className="flex items-center gap-2">
+                    <Battery className="h-5 w-5"/>
                     <span>{batteryLevel}%</span>
                 </div>
             )}
-            <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
                 <span>{time.toLocaleTimeString('en-IN', { hour12: false, timeZone: 'Asia/Kolkata' })}</span>
             </div>
         </div>
