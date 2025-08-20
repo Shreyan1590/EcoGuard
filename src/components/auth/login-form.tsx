@@ -80,12 +80,22 @@ export function LoginForm() {
 
       } catch (error: any) {
         // If admin login fails because the user does not exist, create it.
-        if (isAdminLogin && error.code === 'auth/user-not-found') {
-          console.log('Admin user not found. Creating a new admin user...');
-          const newUserCredential = await createUserWithEmailAndPassword(auth, adminEmail, password);
-          const newUser = newUserCredential.user;
-          await createUserInFirestore(newUser.uid, 'Administrator', adminEmail, 'administrator', 'admin');
-          router.push('/admin/dashboard');
+        if (isAdminLogin && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
+          try {
+            const newUserCredential = await createUserWithEmailAndPassword(auth, adminEmail, password);
+            const newUser = newUserCredential.user;
+            await createUserInFirestore(newUser.uid, 'Administrator', adminEmail, 'administrator', 'admin');
+            router.push('/admin/dashboard');
+          } catch (creationError: any) {
+             // If creation also fails (e.g., user already exists but password is wrong), sign in again.
+             // This can happen in a race condition. The sign-in should now succeed.
+             if(creationError.code === 'auth/email-already-in-use') {
+                 await signInWithEmailAndPassword(auth, adminEmail, password);
+                 router.push('/admin/dashboard');
+             } else {
+                 throw creationError; // Re-throw other creation errors
+             }
+          }
         } else if (error.code === 'auth/invalid-credential') {
            toast({
             title: "Login Failed",
