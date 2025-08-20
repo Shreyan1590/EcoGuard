@@ -2,47 +2,42 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    function isUserAuthenticated() {
-      return request.auth != null;
-    }
-    
-    function isUserRole(role) {
-      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+
+    // Helper function to check for admin role
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'administrator';
     }
 
-    // Users can read their own data, admins can read any user's data
+    // Helper function to check for ranger role
+    function isRanger() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ranger';
+    }
+
+    // Users can read their own document, and admins can manage all users.
+    // Unauthenticated users can query for a user by username to facilitate login.
     match /users/{userId} {
-      allow read: if isUserAuthenticated() && (request.auth.uid == userId || isUserRole('administrator'));
-      allow write: if isUserRole('administrator');
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+      allow list: if request.query.where.path == "username"; // Allow unauthenticated query by username
     }
 
-    // Rangers and Admins can read incidents and their subcollections
-    match /incidents/{incidentId}/{document=**} {
-      allow read: if isUserRole('ranger') || isUserRole('administrator');
-    }
-    
-    // Rangers and Admins can update incidents and create notes
+    // Rangers and Admins can read all incidents. Only Admins can create/delete.
     match /incidents/{incidentId} {
-       allow update: if isUserRole('ranger') || isUserRole('administrator');
-    }
-    
-    match /incidents/{incidentId}/notes/{noteId} {
-       allow create: if isUserRole('ranger') || isUserRole('administrator');
+      allow read: if isRanger() || isAdmin();
+      allow create, delete: if isAdmin();
+      // Rangers can update status and notes, Admins can update anything.
+      allow update: if (isRanger() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'notes', 'photos'])) || isAdmin();
+
+      // Rangers and Admins can manage notes on incidents they can access.
+      match /notes/{noteId} {
+        allow read, write: if isRanger() || isAdmin();
+      }
     }
 
-    // Rangers and Admins can read all devices
+    // Only Admins can manage devices. Rangers can only read them.
     match /devices/{deviceId} {
-      allow read: if isUserRole('ranger') || isUserRole('administrator');
-    }
-    
-    // Admins can manage users and devices
-    match /users/{userId} {
-        allow read, write: if isUserRole('administrator');
-    }
-    
-    match /devices/{deviceId} {
-        allow read, write: if isUserRole('administrator');
+      allow read: if isRanger() || isAdmin();
+      allow write: if isAdmin();
     }
   }
 }
