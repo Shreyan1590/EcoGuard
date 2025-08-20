@@ -107,7 +107,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email</Label>
-                                    <Input id="email" type="email" {...form.register("email")} disabled />
+                                    <Input id="email" type="email" {...form.register("email")} readOnly className="text-foreground" />
                                     <p className="text-xs text-muted-foreground">Email address cannot be changed.</p>
                                 </div>
                             </AccordionContent>
