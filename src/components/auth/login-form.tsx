@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Trees } from 'lucide-react';
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/types';
@@ -17,21 +17,43 @@ import type { UserRole } from '@/lib/types';
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('ranger@ecoguard.com');
-  const [password, setPassword] = useState('password');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin123');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    let emailToLogin: string | null = null;
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Handle admin login separately
+      if (username.toLowerCase() === 'admin' && password === 'admin123') {
+        emailToLogin = 'admin@ecoguard.com';
+      } else {
+        // For rangers, find user by username (9-digit number)
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("username", "==", username));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            emailToLogin = userDoc.data().email;
+        }
+      }
+
+      if (!emailToLogin) {
+        throw new Error("Invalid username or password.");
+      }
+
+      const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
       const user = userCredential.user;
       
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
           const role: UserRole = userData.role;
           if (role === 'administrator') {
             router.push('/admin/dashboard');
@@ -46,7 +68,7 @@ export function LoginForm() {
       console.error(error);
       toast({
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: "Invalid username or password. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -66,8 +88,8 @@ export function LoginForm() {
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="user@ecoguard.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" type="text" placeholder="Enter your username" required value={username} onChange={(e) => setUsername(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>

@@ -22,6 +22,7 @@ export type UserRole = 'ranger' | 'administrator';
 
 export type User = {
   id: string; // This will be the Firebase Auth UID
+  username: string; // 9-digit number for rangers, 'admin' for admin
   name: string;
   email: string;
   role: UserRole;
