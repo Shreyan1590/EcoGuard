@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from 'next/navigation';
@@ -7,12 +8,23 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Trees } from 'lucide-react';
 import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/types';
 
+// Helper function to create user in Firestore
+async function createUserInFirestore(uid: string, name: string, email: string, role: UserRole, username: string) {
+    const userDocRef = doc(db, "users", uid);
+    await setDoc(userDocRef, {
+        id: uid,
+        name,
+        email,
+        role,
+        username
+    });
+}
 
 export function LoginForm() {
   const router = useRouter();
@@ -24,14 +36,18 @@ export function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    let emailToLogin: string | null = null;
+    
+    const isAdminLogin = username.toLowerCase() === 'admin' && password === 'admin123';
+    const adminEmail = 'admin@ecoguard.com';
 
     try {
-      // Handle admin login separately
-      if (username.toLowerCase() === 'admin' && password === 'admin123') {
-        emailToLogin = 'admin@ecoguard.com';
+      let emailToLogin: string | null = null;
+      let userRole: UserRole = 'ranger';
+
+      if (isAdminLogin) {
+        emailToLogin = adminEmail;
+        userRole = 'administrator';
       } else {
-        // For rangers, find user by username (9-digit number)
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("username", "==", username));
         const querySnapshot = await getDocs(q);
@@ -46,16 +62,16 @@ export function LoginForm() {
         throw new Error("Invalid username or password.");
       }
 
-      const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
-      const user = userCredential.user;
-      
-      if (user) {
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
+        const user = userCredential.user;
+        
+        // Redirect based on role
         const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          const role: UserRole = userData.role;
-          if (role === 'administrator') {
+          if (userData.role === 'administrator') {
             router.push('/admin/dashboard');
           } else {
             router.push('/ranger/dashboard');
@@ -63,7 +79,21 @@ export function LoginForm() {
         } else {
            throw new Error("User role not found.");
         }
+
+      } catch (error: any) {
+        // If admin login fails because the user does not exist, create it.
+        if (isAdminLogin && error.code === 'auth/user-not-found') {
+          console.log('Admin user not found. Creating a new admin user...');
+          const newUserCredential = await createUserWithEmailAndPassword(auth, adminEmail, password);
+          const newUser = newUserCredential.user;
+          await createUserInFirestore(newUser.uid, 'Administrator', adminEmail, 'administrator', 'admin');
+          router.push('/admin/dashboard');
+        } else {
+          // For other errors, just re-throw
+          throw error;
+        }
       }
+
     } catch (error) {
       console.error(error);
       toast({
@@ -93,13 +123,10 @@ export function LoginForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}/>
+            <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Logging in...' : 'Login'}
-          </Button>
-          <Button variant="outline" className="w-full" type="button" disabled={isLoading}>
-            Sign in with Google
           </Button>
         </form>
       </CardContent>
