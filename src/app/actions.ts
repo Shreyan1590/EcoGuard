@@ -3,8 +3,8 @@
 import { analyzeIncidentConfidenceLevel as analyze } from "@/ai/flows/incident-confidence-level";
 import type { AnalyzeIncidentConfidenceLevelInput } from "@/ai/flows/incident-confidence-level";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import type { Device, User } from "@/lib/types";
+import { collection, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import type { Device, User, Incident } from "@/lib/types";
 
 // Since we can't easily interact with Firebase Auth on the server-side in this environment without a custom setup,
 // we will focus on Firestore CRUD operations. User creation in Auth will still be handled on the client
@@ -54,3 +54,28 @@ export async function deleteDevice(deviceId: string) {
     const deviceRef = doc(db, "devices", deviceId);
     await deleteDoc(deviceRef);
 }
+
+// Incident Actions
+export async function addIncident(incidentData: Omit<Incident, 'id' | 'timestamp' | 'history' | 'notes' | 'photos'>) {
+    const newIncident = {
+        ...incidentData,
+        timestamp: serverTimestamp(),
+        history: [{ event: 'Incident Created', timestamp: new Date().toISOString() }],
+        notes: [],
+        photos: [],
+    };
+    const docRef = await addDoc(collection(db, "incidents"), newIncident);
+    return { id: docRef.id, ...newIncident };
+}
+
+export async function updateIncident(incidentId: string, incidentData: Partial<Omit<Incident, 'id'>>) {
+    const incidentRef = doc(db, "incidents", incidentId);
+    await updateDoc(incidentRef, incidentData);
+}
+
+export async function deleteIncident(incidentId: string) {
+    const incidentRef = doc(db, "incidents", incidentId);
+    await deleteDoc(incidentRef);
+}
+
+    

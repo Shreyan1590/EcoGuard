@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { BarChart, Settings, LogOut, Trees, Bell, Map, ClipboardList, Wrench, Users, PanelLeft, Menu, Battery, Clock } from 'lucide-react';
+import { BarChart, Settings, LogOut, Trees, Bell, Map, ClipboardList, Wrench, Users, PanelLeft, Menu, Battery, Clock, Activity, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import type { UserRole } from '@/lib/types';
@@ -20,10 +20,11 @@ const rangerNav = [
 ];
 
 const adminNav = [
-  { name: 'Dashboard', href: '/admin/dashboard', icon: BarChart },
-  { name: 'Users', href: '/admin/dashboard', icon: Users },
-  { name: 'AI Tool', href: '/admin/confidence-tool', icon: Wrench },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/admin/dashboard', icon: BarChart, path: '/admin/dashboard' },
+  { name: 'Incidents', href: '/admin/dashboard#incidents', icon: AlertTriangle, path: '/admin/dashboard#incidents'},
+  { name: 'User Management', href: '/admin/dashboard#user-management', icon: Users, path: '/admin/dashboard#user-management'},
+  { name: 'AI Tool', href: '/admin/confidence-tool', icon: Wrench, path: '/admin/confidence-tool' },
+  { name: 'Settings', href: '/settings', icon: Settings, path: '/settings' },
 ];
 
 export function AppShell({ children, role }: { children: ReactNode; role: UserRole }) {
@@ -81,6 +82,8 @@ function DesktopSidebar({ navigation, role, handleLogout }: { navigation: any[],
           let isActive = false;
           if (item.view) {
             isActive = pathname === item.path && (currentView === item.view || (!currentView && item.view === 'list'));
+          } else if (item.path.includes('#')) {
+             isActive = pathname === item.path.split('#')[0];
           } else if (item.path) {
             isActive = pathname === item.path;
           } else {
@@ -117,7 +120,7 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
 
   useEffect(() => {
-    // Set initial time on client mount
+    // These will only run on the client, after initial hydration
     setTime(new Date());
     const timer = setInterval(() => setTime(new Date()), 1000);
     
@@ -132,7 +135,7 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
     }
 
     return () => clearInterval(timer);
-  }, []);
+  }, []); // Empty dependency array ensures this runs once on mount
 
   return (
      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
@@ -222,3 +225,5 @@ function MobileNavLink({ href, icon: Icon, name, view, path }: { href: string, i
     </Link>
   );
 }
+
+    
