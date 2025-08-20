@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Lightbulb } from "lucide-react";
 import { AuthProvider } from "@/hooks/use-auth";
 
+export const dynamic = 'force-dynamic';
+
 export default function ConfidenceToolPage() {
     return (
         <AuthProvider>

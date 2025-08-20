@@ -60,7 +60,6 @@ function RangerDashboardContent() {
     resolved: 'text-primary',
   };
 
-
   return (
     <AppShell role="ranger">
       <div className="space-y-6">
@@ -145,5 +144,3 @@ export default function RangerDashboard() {
     </AuthProvider>
   );
 }
-
-    
