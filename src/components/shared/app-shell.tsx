@@ -39,9 +39,15 @@ export function AppShell({ children, role }: { children: ReactNode; role: UserRo
       <DesktopSidebar navigation={navigation} role={role} handleLogout={handleLogout} />
       <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
         <MobileHeader navigation={navigation} role={role} handleLogout={handleLogout} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">
           {children}
         </main>
+        <footer className="text-center p-4 text-muted-foreground text-sm">
+            &copy; Designed and Developed by{' '}
+            <a href="https://www.shreyan.site" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+                Shreyan
+            </a>
+        </footer>
       </div>
        {/* Bottom Nav for Mobile */}
        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t z-10">
