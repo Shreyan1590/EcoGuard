@@ -16,13 +16,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Input } from "@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit } from 'lucide-react';
 import { addIncident, updateIncident } from '@/app/actions';
 import type { Incident } from '@/lib/types';
-import { Textarea } from '../ui/textarea';
+import { Textarea } from '@/components/ui/textarea';
 
 const formSchema = z.object({
   treeId: z.string().min(1, "Tree ID is required."),
@@ -199,5 +199,3 @@ export function AddIncidentDialog({ incident }: AddIncidentDialogProps) {
     </Dialog>
   );
 }
-
-    
