@@ -1,27 +1,54 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read their own user document
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+  
+    // Helper function to check if the user is an administrator
+    function isAdministrator() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'administrator';
     }
 
-    // Allow authenticated users to read incidents, devices, and notes
-    match /incidents/{incidentId} {
-      allow read, update: if request.auth != null;
-      match /notes/{noteId} {
-        allow read, create: if request.auth != null;
-      }
+    // Helper function to check if the user is a ranger
+    function isRanger() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ranger';
+    }
+  
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Allow a user to read their own document to get their role
+      allow get: if request.auth.uid == userId;
+      // Allow administrators to read any user document for user management
+      allow list: if isAdministrator();
+      // Only allow administrators to create, update, or delete users
+      allow write: if isAdministrator();
     }
     
+    // Rules for the 'devices' collection
     match /devices/{deviceId} {
+      // Allow any authenticated user (rangers and admins) to read device data
       allow read: if request.auth != null;
+      // Disallow client-side writes for now, assuming devices are managed on the backend
+      allow write: if false; 
     }
 
-    // A more secure rule for production would be to restrict access
-    // based on roles. For example, only admins can write to the users collection.
-    // For now, these rules will allow the app to function during development.
+    // Rules for the 'incidents' collection
+    match /incidents/{incidentId} {
+      // Allow any authenticated user to read incident data
+      allow read: if request.auth != null;
+      // Allow rangers to update incidents (e.g., change status)
+      allow update: if isRanger();
+      // Disallow client-side creation/deletion of incidents
+      allow create, delete: if false;
+
+      // Rules for the 'notes' sub-collection
+      match /notes/{noteId} {
+        // Allow authenticated users to read notes for an incident
+        allow read: if request.auth != null;
+        // Allow rangers to create new notes
+        allow create: if isRanger();
+        // Prevent updating or deleting notes from the client
+        allow update, delete: if false;
+      }
+    }
   }
 }
