@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AppShell } from '@/components/shared/app-shell';
@@ -5,20 +6,36 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CheckCircle, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CheckCircle, AlertTriangle, Wifi, WifiOff, Edit, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Incident, User, Device } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AddUserDialog } from '@/components/admin/add-user-dialog';
+import { AddDeviceDialog } from '@/components/admin/add-device-dialog';
+import { deleteUser, deleteDevice } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 export default function AdminDashboard() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsubIncidents = onSnapshot(query(collection(db, "incidents")), (snapshot) => {
@@ -36,7 +53,6 @@ export default function AdminDashboard() {
       setDevices(data);
     });
     
-    // Determine loading state
     Promise.all([
       new Promise(resolve => onSnapshot(query(collection(db, "incidents")), () => resolve(true))),
       new Promise(resolve => onSnapshot(query(collection(db, "users")), () => resolve(true))),
@@ -50,6 +66,26 @@ export default function AdminDashboard() {
       unsubDevices();
     };
   }, []);
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+        await deleteUser(userId);
+        toast({ title: "User deleted successfully." });
+    } catch (error) {
+        toast({ title: "Failed to delete user.", variant: 'destructive' });
+        console.error("Error deleting user:", error);
+    }
+  };
+
+  const handleDeleteDevice = async (deviceId: string) => {
+      try {
+          await deleteDevice(deviceId);
+          toast({ title: "Device deleted successfully." });
+      } catch (error) {
+          toast({ title: "Failed to delete device.", variant: 'destructive' });
+          console.error("Error deleting device:", error);
+      }
+  };
 
 
   const totalIncidents = incidents.length;
@@ -117,12 +153,7 @@ export default function AdminDashboard() {
                   <CardTitle>User Management</CardTitle>
                   <CardDescription>Add, edit, or remove user accounts.</CardDescription>
                 </div>
-                <Button asChild size="sm" className="ml-auto gap-1">
-                  <Link href="#">
-                    Add User
-                    <PlusCircle className="h-4 w-4" />
-                  </Link>
-                </Button>
+                <AddUserDialog />
               </CardHeader>
               <CardContent>
                 <Table>
@@ -143,8 +174,25 @@ export default function AdminDashboard() {
                         <TableCell>
                           <Badge variant={user.role === 'administrator' ? 'default' : 'secondary'} className="capitalize">{user.role}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                        <TableCell className="text-right space-x-2">
+                            <AddUserDialog user={user} />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the user account.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -158,12 +206,7 @@ export default function AdminDashboard() {
                   <CardTitle>Device Management</CardTitle>
                   <CardDescription>View status of deployed EcoGuard devices.</CardDescription>
                 </div>
-                <Button asChild size="sm" className="ml-auto gap-1">
-                  <Link href="#">
-                    Add Device
-                    <PlusCircle className="h-4 w-4" />
-                  </Link>
-                </Button>
+                <AddDeviceDialog />
               </CardHeader>
               <CardContent>
                 <Table>
@@ -171,7 +214,7 @@ export default function AdminDashboard() {
                     <TableRow>
                       <TableHead>Device ID</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Battery</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -184,7 +227,26 @@ export default function AdminDashboard() {
                               {device.status}
                             </Badge>
                         </TableCell>
-                        <TableCell className="text-right">{device.battery}%</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <AddDeviceDialog device={device} />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the device.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteDevice(device.id)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
