@@ -62,7 +62,7 @@ export function LoginForm() {
       }
 
       if (!emailToLogin) {
-        throw new Error("Invalid username.");
+        throw new Error("Invalid username. Please check and try again.");
       }
       
       let userCredential;
@@ -103,16 +103,18 @@ export function LoginForm() {
       // Ensure Firestore document exists
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
+      let firestoreUserRole = userDocSnap.data()?.role;
 
       if (!userDocSnap.exists()) {
           // This case handles users that exist in Auth but not Firestore.
           // For example, if admin was created in Auth but Firestore write failed.
           const name = userRole === 'administrator' ? 'Administrator' : 'Ranger';
           await createUserInFirestore(user.uid, name, emailToLogin, userRole, userNameForDb);
+          firestoreUserRole = userRole;
       }
       
       // Redirect based on role
-      if (userRole === 'administrator') {
+      if (firestoreUserRole === 'administrator') {
         router.push('/admin/dashboard');
       } else {
         router.push('/ranger/dashboard');
