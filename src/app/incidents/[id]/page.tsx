@@ -1,5 +1,6 @@
+"use client";
+
 import { AppShell } from '@/components/shared/app-shell';
-import { mockIncidents } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +10,121 @@ import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { MapPin, Clock, Shield, Paperclip, Camera, Send } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import type { Incident, IncidentStatus } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+
+type Note = {
+  id: string;
+  user: string;
+  note: string;
+  timestamp: any;
+};
 
 export default function IncidentDetailPage({ params }: { params: { id: string } }) {
-  const incident = mockIncidents.find(inc => inc.id === params.id);
+  const [incident, setIncident] = useState<Incident | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [newNote, setNewNote] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [isNoteSubmitting, setIsNoteSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchIncident = async () => {
+      const docRef = doc(db, 'incidents', params.id);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setIncident({ 
+          id: docSnap.id,
+           ...data,
+           timestamp: (data.timestamp as any).toDate().toISOString(),
+        } as Incident);
+      } else {
+        notFound();
+      }
+      setLoading(false);
+    };
+
+    fetchIncident();
+
+    // Listen for notes
+    const notesQuery = query(collection(db, 'incidents', params.id, 'notes'), orderBy('timestamp', 'desc'));
+    const unsubscribe = onSnapshot(notesQuery, (snapshot) => {
+        const notesData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Note);
+        setNotes(notesData);
+    });
+    
+    return () => unsubscribe();
+
+  }, [params.id]);
+
+  const handleNoteSubmit = async () => {
+    if (!newNote.trim()) return;
+    setIsNoteSubmitting(true);
+    try {
+        await addDoc(collection(db, "incidents", params.id, "notes"), {
+            note: newNote,
+            user: "Ranger Smith", // Placeholder for authenticated user
+            timestamp: serverTimestamp(),
+        });
+        setNewNote("");
+        toast({ title: "Note added successfully." });
+    } catch (error) {
+        console.error("Error adding note: ", error);
+        toast({ title: "Failed to add note.", variant: "destructive" });
+    } finally {
+        setIsNoteSubmitting(false);
+    }
+  };
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !incident) return;
+
+    toast({ title: 'Uploading photo...' });
+    try {
+        const storageRef = ref(storage, `incidents/${incident.id}/${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        const updatedPhotos = [...incident.photos, downloadURL];
+        await updateDoc(doc(db, 'incidents', incident.id), { photos: updatedPhotos });
+        
+        setIncident(prev => prev ? {...prev, photos: updatedPhotos} : null);
+
+        toast({ title: "Photo uploaded successfully!" });
+    } catch (error) {
+        console.error("Error uploading photo:", error);
+        toast({ title: "Photo upload failed.", variant: "destructive" });
+    }
+  };
+  
+  if (loading) {
+    return (
+        <AppShell role="ranger">
+            <div className="space-y-6">
+                <Skeleton className="h-12 w-3/4" />
+                <div className="grid md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 space-y-6">
+                        <Skeleton className="h-48 w-full" />
+                        <Skeleton className="h-64 w-full" />
+                        <Skeleton className="h-48 w-full" />
+                    </div>
+                    <div className="space-y-6">
+                        <Skeleton className="h-80 w-full" />
+                        <Skeleton className="h-48 w-full" />
+                    </div>
+                </div>
+            </div>
+        </AppShell>
+    );
+  }
 
   if (!incident) {
     notFound();
@@ -45,7 +158,7 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
                   <Clock className="h-5 w-5 mt-1 text-primary"/>
                   <div>
                     <p className="font-semibold">Timestamp</p>
-                    <p>{format(new Date(incident.timestamp), "PPP p")}</p>
+                    <p>{format(new Date(incident.timestamp as string), "PPP p")}</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -78,13 +191,13 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {incident.notes.length > 0 ? incident.notes.map((note, index) => (
-                    <div key={index} className="flex space-x-3">
+                  {notes.length > 0 ? notes.map((note) => (
+                    <div key={note.id} className="flex space-x-3">
                       <div className="flex-shrink-0">
                         <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center font-bold text-secondary-foreground">{note.user.charAt(0)}</div>
                       </div>
                       <div>
-                        <p className="font-semibold">{note.user} <span className="font-normal text-sm text-muted-foreground">- {format(new Date(note.timestamp), 'PP p')}</span></p>
+                        <p className="font-semibold">{note.user} <span className="font-normal text-sm text-muted-foreground">- {note.timestamp ? format(note.timestamp.toDate(), 'PP p') : 'Just now'}</span></p>
                         <p className="text-card-foreground/80">{note.note}</p>
                       </div>
                     </div>
@@ -93,8 +206,10 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
                 <div className="mt-6 space-y-2">
                     <Label htmlFor="new-note" className="font-semibold">Add a note</Label>
                     <div className="flex gap-2">
-                        <Textarea id="new-note" placeholder="Type your note here..."/>
-                        <Button size="icon" aria-label="Send note"><Send className="h-4 w-4"/></Button>
+                        <Textarea id="new-note" placeholder="Type your note here..." value={newNote} onChange={(e) => setNewNote(e.target.value)} disabled={isNoteSubmitting}/>
+                        <Button size="icon" aria-label="Send note" onClick={handleNoteSubmit} disabled={isNoteSubmitting}>
+                            <Send className="h-4 w-4"/>
+                        </Button>
                     </div>
                 </div>
               </CardContent>
@@ -112,7 +227,12 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
                         </div>
                     ))}
                  </div>
-                 <Button className="mt-4 bg-accent hover:bg-accent/90"><Camera className="mr-2 h-4 w-4"/> Upload Photo</Button>
+                 <Button asChild className="mt-4 bg-accent hover:bg-accent/90">
+                    <Label htmlFor="photo-upload" className="cursor-pointer">
+                        <Camera className="mr-2 h-4 w-4"/> Upload Photo
+                        <input id="photo-upload" type="file" className="sr-only" accept="image/*" onChange={handlePhotoUpload}/>
+                    </Label>
+                 </Button>
               </CardContent>
             </Card>
           </div>

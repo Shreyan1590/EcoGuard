@@ -6,20 +6,51 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Trees } from 'lucide-react';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/types';
+
 
 export function LoginForm() {
   const router = useRouter();
-  const [role, setRole] = useState<UserRole>('ranger');
+  const { toast } = useToast();
+  const [email, setEmail] = useState('ranger@ecoguard.com');
+  const [password, setPassword] = useState('password');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (role === 'administrator') {
-      router.push('/admin/dashboard');
-    } else {
-      router.push('/ranger/dashboard');
+    setIsLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const role: UserRole = userData.role;
+          if (role === 'administrator') {
+            router.push('/admin/dashboard');
+          } else {
+            router.push('/ranger/dashboard');
+          }
+        } else {
+           throw new Error("User role not found.");
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Login Failed",
+        description: "Invalid email or password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -36,29 +67,16 @@ export function LoginForm() {
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="user@ecoguard.com" required defaultValue="ranger@ecoguard.com" />
+            <Input id="email" type="email" placeholder="user@ecoguard.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required defaultValue="password" />
+            <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}/>
           </div>
-          <div className="space-y-3">
-            <Label>Select Role (for prototype)</Label>
-            <RadioGroup defaultValue="ranger" value={role} onValueChange={(value: UserRole) => setRole(value)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="ranger" id="r1" />
-                <Label htmlFor="r1">Ranger</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="administrator" id="r2" />
-                <Label htmlFor="r2">Administrator</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <Button type="submit" className="w-full bg-accent hover:bg-accent/90">
-            Login
+          <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Login'}
           </Button>
-          <Button variant="outline" className="w-full" type="button">
+          <Button variant="outline" className="w-full" type="button" disabled={isLoading}>
             Sign in with Google
           </Button>
         </form>

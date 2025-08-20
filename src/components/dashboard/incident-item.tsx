@@ -8,18 +8,33 @@ import type { Incident } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowRight, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export function IncidentItem({ incident }: { incident: Incident }) {
   const { toast } = useToast();
 
-  const handleAcknowledge = (e: React.MouseEvent) => {
+  const handleAcknowledge = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // In a real app, this would update Firestore
-    toast({
-        title: "Incident Acknowledged",
-        description: `Incident for tree ${incident.treeId} has been acknowledged.`,
-    });
+    
+    const incidentRef = doc(db, 'incidents', incident.id);
+    try {
+      await updateDoc(incidentRef, {
+        status: 'acknowledged'
+      });
+      toast({
+          title: "Incident Acknowledged",
+          description: `Incident for tree ${incident.treeId} has been acknowledged.`,
+      });
+    } catch (error) {
+       console.error("Error acknowledging incident: ", error);
+       toast({
+          title: "Error",
+          description: "Failed to acknowledge the incident.",
+          variant: 'destructive'
+      });
+    }
   };
 
   const statusVariant = {
@@ -44,7 +59,7 @@ export function IncidentItem({ incident }: { incident: Incident }) {
                     <div>
                         <p className="font-bold text-lg text-primary">{incident.treeId}</p>
                         <p className="text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(incident.timestamp), { addSuffix: true })}
+                            {formatDistanceToNow(new Date(incident.timestamp as string), { addSuffix: true })}
                         </p>
                     </div>
                     <Badge variant={statusVariant[incident.status]} className="capitalize">{incident.status}</Badge>
