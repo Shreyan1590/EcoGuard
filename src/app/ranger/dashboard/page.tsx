@@ -13,6 +13,7 @@ import { db } from '@/lib/firebase';
 import type { Incident } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { AuthProvider } from '@/hooks/use-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -135,10 +136,19 @@ function RangerDashboardContent() {
   );
 }
 
-export default function RangerDashboard() {
+function RangerDashboardPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <RangerDashboardContent />
     </Suspense>
   )
+}
+
+
+export default function RangerDashboard() {
+  return (
+    <AuthProvider>
+        <RangerDashboardPage />
+    </AuthProvider>
+  );
 }

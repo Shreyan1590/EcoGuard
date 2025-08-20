@@ -4,14 +4,14 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from "@/components/shared/app-shell";
 import { Settings } from "lucide-react";
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, AuthProvider } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SettingsForm } from '@/components/settings/settings-form';
 import type { User } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default function SettingsPage() {
+function SettingsPageContent() {
     const { user, loading } = useAuth();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -52,4 +52,13 @@ export default function SettingsPage() {
             </div>
         </AppShell>
     );
+}
+
+
+export default function SettingsPage() {
+    return (
+        <AuthProvider>
+            <SettingsPageContent />
+        </AuthProvider>
+    )
 }

@@ -10,10 +10,11 @@ import type { Incident } from '@/lib/types';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AuthProvider } from '@/hooks/use-auth';
 
 export const dynamic = 'force-dynamic';
 
-export default function AlertsPage() {
+function AlertsPageContent() {
     const [newIncidents, setNewIncidents] = useState<Incident[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -66,5 +67,13 @@ export default function AlertsPage() {
                 </Card>
             </div>
         </AppShell>
+    );
+}
+
+export default function AlertsPage() {
+    return (
+        <AuthProvider>
+            <AlertsPageContent />
+        </AuthProvider>
     );
 }

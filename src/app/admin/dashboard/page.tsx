@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { AuthProvider } from '@/hooks/use-auth';
 
 type NoteWithIncidentId = {
     id: string;
@@ -40,7 +41,7 @@ type NoteWithIncidentId = {
     incidentId: string;
 }
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
@@ -403,6 +404,14 @@ export default function AdminDashboard() {
   );
 }
 
+export default function AdminDashboard() {
+    return (
+        <AuthProvider>
+            <AdminDashboardContent />
+        </AuthProvider>
+    );
+}
+
 
 function DashboardSkeleton() {
   return (
@@ -422,5 +431,3 @@ function DashboardSkeleton() {
     </>
   )
 }
-
-    

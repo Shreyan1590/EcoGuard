@@ -18,6 +18,7 @@ import type { Incident, IncidentStatus } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { AuthProvider } from '@/hooks/use-auth';
 
 type Note = {
   id: string;
@@ -28,7 +29,7 @@ type Note = {
 
 export const dynamic = 'force-dynamic';
 
-export default function IncidentDetailPage({ params }: { params: { id: string } }) {
+function IncidentDetailContent({ params }: { params: { id: string } }) {
   const [incident, setIncident] = useState<Incident | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState("");
@@ -275,4 +276,13 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
       </div>
     </AppShell>
   );
+}
+
+
+export default function IncidentDetailPage({ params }: { params: { id: string } }) {
+    return (
+        <AuthProvider>
+            <IncidentDetailContent params={params} />
+        </AuthProvider>
+    );
 }
