@@ -1,33 +1,55 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read their own user document.
-    // Users can update their own user document.
-    // Admins can read, write, create, and delete any user document.
-    match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'administrator';
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Incidents can be read by any authenticated user.
-    // Incidents can be created, updated, or deleted by administrators.
-    // Notes can be added by any authenticated user.
-    match /incidents/{incidentId} {
-      allow read, write: if request.auth != null; // Kept open for now for rangers and admins
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Allow a user to read their own document
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+
+      // Allow a user to create their own document (e.g., on sign-up)
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Allow a user to update their own document
+      allow update: if isAuthenticated() && request.auth.uid == userId;
       
+      // Disallow deleting user documents via client requests for safety.
+      // Deletions should be handled by server-side logic (e.g., Cloud Functions).
+      allow delete: if false; 
+    }
+
+    // Rules for the 'incidents' collection
+    match /incidents/{incidentId} {
+      // Rangers and Admins can read all incidents
+      allow read: if isAuthenticated();
+      
+      // Rangers and Admins can create new incidents
+      allow create: if isAuthenticated();
+      
+      // Rangers and Admins can update incidents (e.g., change status)
+      allow update: if isAuthenticated();
+
+      // Only Admins should be able to delete incidents (or handled server-side)
+      // For now, we'll restrict deletion from the client.
+      allow delete: if false;
+
+      // Rules for the 'notes' subcollection within an incident
       match /notes/{noteId} {
-         allow create: if request.auth != null;
+        // Any authenticated user (ranger/admin) can add or read notes
+        allow list, get, create: if isAuthenticated();
       }
     }
     
-    // Devices can be read by any authenticated user.
-    // Admins can create, update, and delete devices.
+    // Rules for the 'devices' collection
     match /devices/{deviceId} {
-       allow read: if request.auth != null;
-       allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'administrator';
+        // Only authenticated users should be able to interact with devices
+        allow read, list, create, update, delete: if isAuthenticated();
     }
   }
 }
