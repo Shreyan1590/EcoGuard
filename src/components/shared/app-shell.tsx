@@ -13,10 +13,10 @@ import { useEffect, useState } from 'react';
 
 
 const rangerNav = [
-  { name: 'Dashboard', href: '/ranger/dashboard?view=list', icon: ClipboardList, view: 'list' },
-  { name: 'Map', href: '/ranger/dashboard?view=map', icon: Map, view: 'map' },
-  { name: 'Alerts', href: '#', icon: Bell },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/ranger/dashboard?view=list', icon: ClipboardList, view: 'list', path: '/ranger/dashboard' },
+  { name: 'Map', href: '/ranger/dashboard?view=map', icon: Map, view: 'map', path: '/ranger/dashboard' },
+  { name: 'Alerts', href: '/ranger/alerts', icon: Bell, path: '/ranger/alerts' },
+  { name: 'Settings', href: '/settings', icon: Settings, path: '/settings' },
 ];
 
 const adminNav = [
@@ -54,7 +54,7 @@ export function AppShell({ children, role }: { children: ReactNode; role: UserRo
        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t z-10">
         <div className="grid h-16 grid-cols-4">
            {rangerNav.map((item) => (
-             <MobileNavLink key={item.name} href={item.href} icon={item.icon} name={item.name} view={item.view} />
+             <MobileNavLink key={item.name} href={item.href} icon={item.icon} name={item.name} view={item.view} path={item.path}/>
            ))}
         </div>
       </nav>
@@ -67,8 +67,6 @@ function DesktopSidebar({ navigation, role, handleLogout }: { navigation: any[],
   const searchParams = useSearchParams();
   const currentView = searchParams.get('view');
   
-  const isRangerDashboard = pathname.startsWith('/ranger/dashboard');
-
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
       <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
@@ -80,9 +78,14 @@ function DesktopSidebar({ navigation, role, handleLogout }: { navigation: any[],
           <span className="sr-only">EcoGuard</span>
         </Link>
         {navigation.map((item) => {
-          const isActive = item.view
-            ? isRangerDashboard && (currentView === item.view || (!currentView && item.view === 'list'))
-            : pathname.startsWith(item.href) && item.href !== '#';
+          let isActive = false;
+          if (item.view) {
+            isActive = pathname === item.path && (currentView === item.view || (!currentView && item.view === 'list'));
+          } else if (item.path) {
+            isActive = pathname === item.path;
+          } else {
+            isActive = pathname.startsWith(item.href) && item.href !== '#';
+          }
             
           return (
             <Link
@@ -172,7 +175,7 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
        </div>
 
       <div className="ml-auto flex items-center gap-4">
-        <div className="hidden sm:flex items-center gap-4 font-code text-base text-primary font-bold">
+        <div className="hidden sm:flex items-center gap-4 font-mono text-base text-primary font-bold">
             {batteryLevel !== null && (
                 <div className="flex items-center gap-2">
                     <Battery className="h-5 w-5"/>
@@ -195,15 +198,19 @@ function MobileHeader({ navigation, role, handleLogout }: { navigation: any[], r
   )
 }
 
-function MobileNavLink({ href, icon: Icon, name, view }: { href: string, icon: React.ElementType, name: string, view?: string }) {
+function MobileNavLink({ href, icon: Icon, name, view, path }: { href: string, icon: React.ElementType, name: string, view?: string, path?: string }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentView = searchParams.get('view');
-
-  const isRangerDashboard = pathname.startsWith('/ranger/dashboard');
-  const isActive = view
-      ? isRangerDashboard && (currentView === view || (!currentView && view === 'list'))
-      : pathname.startsWith(href) && href !== '#';
+  
+  let isActive = false;
+  if (view) {
+    isActive = pathname === path && (currentView === view || (!currentView && view === 'list'));
+  } else if (path) {
+    isActive = pathname === path;
+  } else {
+    isActive = pathname.startsWith(href) && href !== '#';
+  }
 
   return (
     <Link href={href} className={cn(
