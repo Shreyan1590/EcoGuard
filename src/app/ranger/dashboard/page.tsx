@@ -17,7 +17,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 
 export const dynamic = 'force-dynamic';
 
-function RangerDashboardContent() {
+function RangerDashboardPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -136,19 +136,18 @@ function RangerDashboardContent() {
   );
 }
 
-function RangerDashboardPage() {
+function RangerDashboardPageWithSuspense() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <RangerDashboardContent />
+      <RangerDashboardPage />
     </Suspense>
   )
 }
 
-
 export default function RangerDashboard() {
   return (
     <AuthProvider>
-        <RangerDashboardPage />
+        <RangerDashboardPageWithSuspense />
     </AuthProvider>
   );
 }
