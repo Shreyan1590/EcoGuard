@@ -30,9 +30,9 @@ import type { User, UserRole } from '@/lib/types';
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Invalid email address."),
-  username: z.string().regex(/^\d{9}$/, "Username must be a 9-digit number."),
+  username: z.string().min(1, "Username is required."),
   role: z.enum(['ranger', 'administrator']),
-  password: z.string().min(6, "Password must be at least 6 characters.").optional(),
+  password: z.string().min(6, "Password must be at least 6 characters.").optional().or(z.literal('')),
 });
 
 interface AddUserDialogProps {
@@ -60,8 +60,12 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (isEditMode) {
-        // Only allow updating the name in edit mode. Role changes are restricted.
-        await updateUser(user.id, { name: values.name });
+        // In edit mode, we update the user details.
+        // Note: Updating email/password in Firebase Auth is a sensitive operation
+        // and typically requires re-authentication or admin SDK privileges.
+        // This action only updates the Firestore record.
+        const { password, ...updateData } = values;
+        await updateUser(user.id, updateData);
         toast({ title: "User updated successfully!" });
       } else {
         if (!values.password) {
@@ -78,14 +82,14 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
             id: authUser.uid,
             name: values.name,
             email: values.email,
-            role: 'ranger', // Force role to ranger on creation
+            role: values.role,
             username: values.username
         });
 
-        toast({ title: "Ranger created successfully!" });
+        toast({ title: "User created successfully!" });
       }
       setIsOpen(false);
-      form.reset();
+      form.reset(isEditMode ? values : undefined);
     } catch (error: any) {
       console.error("Failed to save user:", error);
       toast({
@@ -103,15 +107,15 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
             <Button variant="ghost" size="icon"><Edit className="h-4 w-4"/></Button>
         ) : (
             <Button size="sm" className="ml-auto gap-1">
-                Add Ranger <PlusCircle className="h-4 w-4" />
+                Add User <PlusCircle className="h-4 w-4" />
             </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit User' : 'Add New Ranger'}</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit User' : 'Add New User'}</DialogTitle>
           <DialogDescription>
-            {isEditMode ? "Update the user's details below." : "Fill in the personal information for the new ranger."}
+            {isEditMode ? "Update the user's details below." : "Fill in the personal information for the new user."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -133,7 +137,7 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
-                  <FormControl><Input placeholder="user@example.com" {...field} disabled={isEditMode} /></FormControl>
+                  <FormControl><Input placeholder="user@example.com" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -143,32 +147,30 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username (9-digit ID)</FormLabel>
-                  <FormControl><Input placeholder="123456789" {...field} disabled={isEditMode}/></FormControl>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl><Input placeholder="ranger123 or admin" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {!isEditMode && (
-                <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            )}
+             <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>{isEditMode ? 'New Password (Optional)' : 'Password'}</FormLabel>
+                  <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                  <FormMessage />
+                  </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="role"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a role" />
@@ -185,7 +187,7 @@ export function AddUserDialog({ user }: AddUserDialogProps) {
             />
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : (isEditMode ? "Save Changes" : "Create Ranger")}
+                {isSubmitting ? "Saving..." : (isEditMode ? "Save Changes" : "Create User")}
               </Button>
             </DialogFooter>
           </form>

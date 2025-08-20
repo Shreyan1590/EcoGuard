@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CheckCircle, AlertTriangle, Wifi, WifiOff, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, CheckCircle, AlertTriangle, Wifi, WifiOff, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query } from 'firebase/firestore';
@@ -150,8 +150,8 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center">
                 <div className="grid gap-2">
-                  <CardTitle>Ranger Management</CardTitle>
-                  <CardDescription>Add, edit, or remove ranger accounts.</CardDescription>
+                  <CardTitle>User Management</CardTitle>
+                  <CardDescription>Add, edit, or remove user accounts.</CardDescription>
                 </div>
                 <AddUserDialog />
               </CardHeader>
