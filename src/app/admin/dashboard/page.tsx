@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, CheckCircle, AlertTriangle, Wifi, WifiOff, Trash2, Edit } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, collectionGroup, orderBy, getDocs, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Incident, User, Device } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -436,3 +436,5 @@ function DashboardSkeleton() {
     </>
   )
 }
+
+    

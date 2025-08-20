@@ -7,7 +7,7 @@ import { IncidentList } from '@/components/dashboard/incident-list';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Incident } from '@/lib/types';
@@ -17,12 +17,12 @@ import { AuthProvider } from '@/hooks/use-auth';
 
 export const dynamic = 'force-dynamic';
 
-function RangerDashboardPage() {
+function RangerDashboardContent() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const view = searchParams ? searchParams.get('view') || 'list' : 'list';
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view') || 'list';
 
   useEffect(() => {
     const q = query(collection(db, 'incidents'));
@@ -33,7 +33,6 @@ function RangerDashboardPage() {
         incidentsData.push({ 
           id: doc.id, 
           ...data,
-          // Convert Firestore Timestamp to string for client-side rendering
           timestamp: (data.timestamp as any).toDate().toISOString(), 
         } as Incident);
       });
@@ -139,18 +138,12 @@ function RangerDashboardPage() {
   );
 }
 
-function RangerDashboardPageWithSuspense() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <RangerDashboardPage />
-    </Suspense>
-  )
-}
-
 export default function RangerDashboard() {
   return (
     <AuthProvider>
-        <RangerDashboardPageWithSuspense />
+        <RangerDashboardContent />
     </AuthProvider>
   );
 }
+
+    
