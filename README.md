@@ -113,5 +113,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 <div align="center">
-  <p>Made with ❤️ by the Firebase team</p>
+  <p>Made with ❤️ by Shreyan S</p>
 </div>
