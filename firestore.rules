@@ -1,0 +1,27 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow users to read their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow authenticated users to read incidents, devices, and notes
+    match /incidents/{incidentId} {
+      allow read, update: if request.auth != null;
+      match /notes/{noteId} {
+        allow read, create: if request.auth != null;
+      }
+    }
+    
+    match /devices/{deviceId} {
+      allow read: if request.auth != null;
+    }
+
+    // A more secure rule for production would be to restrict access
+    // based on roles. For example, only admins can write to the users collection.
+    // For now, these rules will allow the app to function during development.
+  }
+}
